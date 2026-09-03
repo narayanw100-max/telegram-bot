@@ -1,9 +1,23 @@
 import asyncio
 import requests
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Bot
 
 TELEGRAM_TOKEN = "8892813800:AAFXmYjyhEMC1AcWxHSK8gBsNWC4mgL4i1Y"
 CHAT_ID = "7815873110"
+
+# Render के Health Check के लिए Dummy HTTP Server
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is active and running 24/7!")
+
+def run_health_server():
+    server = HTTPServer(('0.0.0.0', 10000), HealthCheckHandler)
+    server.serve_forever()
 
 def get_latest_news():
     url = "https://hacker-news.firebaseio.com/v0/topstories.json"
@@ -22,6 +36,9 @@ def get_latest_news():
         return f"Error fetching news: {e}"
 
 async def main():
+    # Background Thread में HTTP Server स्टार्ट करें
+    threading.Thread(target=run_health_server, daemon=True).start()
+    
     bot = Bot(token=TELEGRAM_TOKEN)
     print("Automated Bot Started...")
     while True:
@@ -36,4 +53,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
