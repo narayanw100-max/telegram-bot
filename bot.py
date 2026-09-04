@@ -1,5 +1,6 @@
-hereimport asyncio
+import asyncio
 import requests
+import random
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Bot
@@ -7,9 +8,6 @@ from telegram import Bot
 TELEGRAM_TOKEN = "8892813800:AAFXmYjyhEMC1AcWxHSK8gBsNWC4mgL4i1Y"
 CHAT_ID = "7815873110"
 
-posted_story_ids = set()
-
-# Render Health Check
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -26,19 +24,17 @@ def get_latest_news():
     try:
         response = requests.get(url).json()
         
-        # टॉप 10 कहानियों में से पहली ऐसी कहानी खोजें जो पहले न भेजी गई हो
-        for story_id in response[:10]:
-            if story_id not in posted_story_ids:
-                story_url = f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json"
-                story_data = requests.get(story_url).json()
-                
-                title = story_data.get("title", "No Title")
-                link = story_data.get("url", "No Link Available")
-                
-                posted_story_ids.add(story_id)
-                return f"🔥 **InsightPulse AI Update** 🔥\n\n📌 **Title:** {title}\n\n🔗 **Read More:** {link}"
-                
-        return None  # अगर कोई नया आर्टिकल न मिले
+        # टॉप 15 कहानियों में से रैंडमली एक कहानी चुनें
+        top_stories = response[:15]
+        selected_story_id = random.choice(top_stories)
+        
+        story_url = f"https://hacker-news.firebaseio.com/v0/item/{selected_story_id}.json"
+        story_data = requests.get(story_url).json()
+        
+        title = story_data.get("title", "No Title")
+        link = story_data.get("url", "No Link Available")
+        
+        return f"🔥 **InsightPulse AI Update** 🔥\n\n📌 **Title:** {title}\n\n🔗 **Read More:** {link}"
     except Exception as e:
         print(f"Error fetching news: {e}")
         return None
@@ -54,8 +50,6 @@ async def main():
             if message:
                 await bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="Markdown")
                 print("Update sent successfully!")
-            else:
-                print("No new unique stories found right now.")
             
             # हर 1 घंटे (3600 सेकंड) बाद अगला मैसेज भेजेगा
             await asyncio.sleep(3600)
