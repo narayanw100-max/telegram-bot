@@ -3,29 +3,25 @@ import urllib.parse
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import requests
-import nest_asyncio
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from pyrogram import Client, filters
 
-# Asyncio Loop Patching
-nest_asyncio.apply()
-
-# Telegram Bot Token
+# Telegram Configuration
 TELEGRAM_TOKEN = "8892813800:AAFXmYjyhEMC1AcWxHSK8gBsNWC4mgL4i1Y"
 
-# Health check server for Render
+# Render Web Server for 24/7 Alive
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(b"Bot is alive!")
+        self.wfile.write(b"Bot is active!")
 
 def run_health_server():
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
     server.serve_forever()
 
+# AI Request Helper
 def query_ai(prompt, model_type="openai"):
     try:
         encoded = urllib.parse.quote(prompt)
@@ -35,7 +31,11 @@ def query_ai(prompt, model_type="openai"):
     except Exception as e:
         return f"Error: {e}"
 
-async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Pyrogram Bot Setup
+app = Client("hybrid_ai_bot", bot_token=TELEGRAM_TOKEN, api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
+
+@app.on_message(filters.command("start"))
+async def start_cmd(client, message):
     msg = (
         "🤖 **Hybrid AI Bot Ready!**\n\n"
         "🔸 `/gpt <prompt>` - Ask ChatGPT\n"
@@ -43,59 +43,53 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔸 `/gemini <prompt>` - Ask Gemini\n"
         "🔸 `/imagine <prompt>` - Generate Photo"
     )
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    await message.reply_text(msg)
 
-async def gpt_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = " ".join(context.args)
+@app.on_message(filters.command("gpt"))
+async def gpt_cmd(client, message):
+    text = " ".join(message.command[1:])
     if not text:
-        await update.message.reply_text("Please provide a prompt!")
+        await message.reply_text("Please provide a prompt! Example: `/gpt Hello`")
         return
     ans = query_ai(text, "openai")
-    await update.message.reply_text(f"🟢 **ChatGPT:**\n\n{ans}")
+    await message.reply_text(f"🟢 **ChatGPT:**\n\n{ans}")
 
-async def claude_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = " ".join(context.args)
+@app.on_message(filters.command("claude"))
+async def claude_cmd(client, message):
+    text = " ".join(message.command[1:])
     if not text:
-        await update.message.reply_text("Please provide a prompt!")
+        await message.reply_text("Please provide a prompt!")
         return
     ans = query_ai(text, "claude")
-    await update.message.reply_text(f"🟠 **Claude:**\n\n{ans}")
+    await message.reply_text(f"🟠 **Claude:**\n\n{ans}")
 
-async def gemini_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = " ".join(context.args)
+@app.on_message(filters.command("gemini"))
+async def gemini_cmd(client, message):
+    text = " ".join(message.command[1:])
     if not text:
-        await update.message.reply_text("Please provide a prompt!")
+        await message.reply_text("Please provide a prompt!")
         return
     ans = query_ai(text, "gemini")
-    await update.message.reply_text(f"🔵 **Gemini:**\n\n{ans}")
+    await message.reply_text(f"🔵 **Gemini:**\n\n{ans}")
 
-async def imagine_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    prompt = " ".join(context.args)
+@app.on_message(filters.command("imagine"))
+async def imagine_cmd(client, message):
+    prompt = " ".join(message.command[1:])
     if not prompt:
-        await update.message.reply_text("Please give image description!")
+        await message.reply_text("Please give image description!")
         return
     encoded = urllib.parse.quote(prompt)
     img_url = f"https://image.pollinations.ai/prompt/{encoded}"
-    await update.message.reply_photo(photo=img_url, caption=f"✨ **Prompt:** {prompt}")
+    await message.reply_photo(photo=img_url, caption=f"✨ **Prompt:** {prompt}")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    ans = query_ai(update.message.text, "openai")
-    await update.message.reply_text(ans)
+@app.on_message(filters.text & ~filters.service)
+async def handle_message(client, message):
+    if message.text.startswith("/"):
+        return
+    ans = query_ai(message.text, "openai")
+    await message.reply_text(ans)
 
 if __name__ == "__main__":
-    # Background Server
     threading.Thread(target=run_health_server, daemon=True).start()
-    
-    # Application Build
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    
-    # Add Handlers
-    app.add_handler(CommandHandler("start", start_cmd))
-    app.add_handler(CommandHandler("gpt", gpt_cmd))
-    app.add_handler(CommandHandler("claude", claude_cmd))
-    app.add_handler(CommandHandler("gemini", gemini_cmd))
-    app.add_handler(CommandHandler("imagine", imagine_cmd))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    # Run
-    app.run_polling(drop_pending_updates=True)
+    print("Bot Starting with Pyrogram...")
+    app.run()
