@@ -1,4 +1,5 @@
 import os
+import asyncio
 import urllib.parse
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -7,6 +8,13 @@ from pyrogram import Client, filters
 
 # Telegram Configuration
 TELEGRAM_TOKEN = "8892813800:AAFXmYjyhEMC1AcWxHSK8gBsNWC4mgL4i1Y"
+
+# Python 3.10+ Event Loop Fix
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
 # Render Web Server for 24/7 Alive
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -32,7 +40,12 @@ def query_ai(prompt, model_type="openai"):
         return f"Error: {e}"
 
 # Pyrogram Bot Setup
-app = Client("hybrid_ai_bot", bot_token=TELEGRAM_TOKEN, api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
+app = Client(
+    "hybrid_ai_bot",
+    bot_token=TELEGRAM_TOKEN,
+    api_id=6,
+    api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e"
+)
 
 @app.on_message(filters.command("start"))
 async def start_cmd(client, message):
