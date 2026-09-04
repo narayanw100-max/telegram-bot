@@ -76,7 +76,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = query_ai(update.message.text, "openai")
     await update.message.reply_text(ans)
 
-if __name__ == "__main__":
+async def main():
     threading.Thread(target=run_health_server, daemon=True).start()
     
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -87,4 +87,11 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("imagine", imagine_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    app.run_polling()
+    async with app:
+        await app.start()
+        await app.updater.start_polling()
+        while True:
+            await asyncio.sleep(3600)
+
+if __name__ == "__main__":
+    asyncio.run(main())
