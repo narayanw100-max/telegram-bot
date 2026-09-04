@@ -3,13 +3,17 @@ import urllib.parse
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import requests
+import nest_asyncio
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+# Asyncio Loop Patching
+nest_asyncio.apply()
 
 # Telegram Bot Token
 TELEGRAM_TOKEN = "8892813800:AAFXmYjyhEMC1AcWxHSK8gBsNWC4mgL4i1Y"
 
-# Render Health Check Server
+# Health check server for Render
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -22,7 +26,6 @@ def run_health_server():
     server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
     server.serve_forever()
 
-# Pollinations AI Request Function
 def query_ai(prompt, model_type="openai"):
     try:
         encoded = urllib.parse.quote(prompt)
@@ -32,7 +35,6 @@ def query_ai(prompt, model_type="openai"):
     except Exception as e:
         return f"Error: {e}"
 
-# Handlers
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "🤖 **Hybrid AI Bot Ready!**\n\n"
@@ -80,12 +82,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = query_ai(update.message.text, "openai")
     await update.message.reply_text(ans)
 
-# Main Application Runner
 if __name__ == "__main__":
-    # Health check server in background thread
+    # Background Server
     threading.Thread(target=run_health_server, daemon=True).start()
     
-    # Build Telegram Bot App
+    # Application Build
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     
     # Add Handlers
@@ -96,6 +97,5 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("imagine", imagine_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    # Start Polling directly (without asyncio.run block)
-    print("Starting bot...")
+    # Run
     app.run_polling(drop_pending_updates=True)
