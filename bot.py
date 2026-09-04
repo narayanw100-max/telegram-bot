@@ -13,50 +13,52 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(b"InsightPulse AI is Active!")
+        self.wfile.write(b"InsightPulse AI Monetization Bot Running!")
 
 def run_health_server():
     server = HTTPServer(('0.0.0.0', 10000), HealthCheckHandler)
     server.serve_forever()
 
-def get_evergreen_global_news():
+def get_viral_global_news():
     url = "https://hacker-news.firebaseio.com/v0/topstories.json"
     try:
         response = requests.get(url).json()
         
-        # व्यापक वैरायटी के लिए टॉप 30 ग्लोबल स्टोरीज में से एक रैंडम चुनें
+        # व्यापक ग्लोबल रीच के लिए टॉप 30 ट्रेंडिंग स्टोरीज में से रैंडम चुनाव
         top_stories = response[:30]
         selected_id = random.choice(top_stories)
         
         story_url = f"https://hacker-news.firebaseio.com/v0/item/{selected_id}.json"
         story_data = requests.get(story_url).json()
         
-        title = story_data.get("title", "Global Tech Insight")
+        title = story_data.get("title", "Global Tech Breakthrough")
         link = story_data.get("url", "https://news.ycombinator.com")
         
+        # High Click-Through Rate (CTR) Format for Viral Reach & Traffic
         return (
-            f"🌍 **InsightPulse AI | Global Trends**\n\n"
-            f"📌 **Title:** {title}\n\n"
-            f"💡 *Evergreen Tech & Innovation Insight*\n\n"
-            f"🔗 **Explore:** {link}"
+            f"⚡ **VIRAL GLOBAL TREND** ⚡\n\n"
+            f"🧠 **{title}**\n\n"
+            f"🌍 *Must-Read Evergeen Insight for Everyone*\n\n"
+            f"👇 **Click to Read Full Story:**\n"
+            f"🔗 {link}"
         )
     except Exception as e:
-        print(f"Error fetching news: {e}")
+        print(f"Error fetching viral news: {e}")
         return None
 
 async def main():
     threading.Thread(target=run_health_server, daemon=True).start()
     bot = Bot(token=TELEGRAM_TOKEN)
-    print("InsightPulse AI Bot Running...")
+    print("Monetization Bot Active...")
     
     while True:
         try:
-            message = get_evergreen_global_news()
+            message = get_viral_global_news()
             if message:
                 await bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="Markdown")
-                print("Global evergreen update sent successfully!")
+                print("Viral news update sent!")
             
-            # हर 1 घंटे (3600 सेकंड) में एक नया अपडेट
+            # हर 1 घंटे (3600 सेकंड) में नया अपडेट
             await asyncio.sleep(3600)
         except Exception as e:
             print(f"Error: {e}")
