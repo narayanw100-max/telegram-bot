@@ -9,13 +9,6 @@ from pyrogram import Client, filters
 # Telegram Configuration
 TELEGRAM_TOKEN = "8892813800:AAFXmYjyhEMC1AcWxHSK8gBsNWC4mgL4i1Y"
 
-# Python 3.10+ Event Loop Fix
-try:
-    loop = asyncio.get_event_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
 # Render Web Server for 24/7 Alive
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -102,7 +95,13 @@ async def handle_message(client, message):
     ans = query_ai(message.text, "openai")
     await message.reply_text(ans)
 
-if __name__ == "__main__":
+# Python 3.10+ compatible async runner
+async def main():
     threading.Thread(target=run_health_server, daemon=True).start()
-    print("Bot Starting with Pyrogram...")
-    app.run()
+    print("Starting Pyrogram with asyncio.run()...")
+    await app.start()
+    print("Bot is LIVE!")
+    await asyncio.Event().wait()
+
+if __name__ == "__main__":
+    asyncio.run(main())
